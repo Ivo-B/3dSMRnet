@@ -101,11 +101,16 @@ def augment(img_list, hflip=True, rot=True):
     drot90 = rot and random.random() < 0.5
 
     def _augment(img):
-        if hflip: img = img[:, ::-1, :, :]
-        if vflip: img = img[::-1, :, :, :]
-        if rot90: img = img.transpose(1, 0, 2, 3)
-        if dflip: img = img[:, :, ::-1, :]
-        if drot90: img = img.transpose(0, 2, 1, 3)
+        if hflip:
+            img = img[:, ::-1, :, :]
+        if vflip:
+            img = img[::-1, :, :, :]
+        if rot90:
+            img = img.transpose(1, 0, 2, 3)
+        if dflip:
+            img = img[:, :, ::-1, :]
+        if drot90:
+            img = img.transpose(0, 2, 1, 3)
         return img
 
     return [_augment(img) for img in img_list]

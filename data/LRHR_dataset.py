@@ -40,15 +40,25 @@ class LRHRDataset(data.Dataset):
                 self.LR_hdf5[key] = np.array(value)
         assert len(self.LR_hdf5) > 0, 'Error: LR is empty.'
 
-        self.LR_hdf5['data'] = np.array(self.LR_hdf5['data']) - 236.17393  # input norm
-        if self.LR_hdf5['data'].shape[1] == 3:
-            # convert data to BGR, F HWDC
-            self.LR_hdf5['data'] = np.transpose( self.LR_hdf5['data'][:, [2, 1, 0], :, :, :], [0, 2, 3, 4, 1])
+        if opt['data_format'] == 'RGB':
+            self.LR_hdf5['data'] = np.array(self.LR_hdf5['data']) - 236.17393  # input norm
+            if self.LR_hdf5['data'].shape[1] == 3:
+                # convert data to BGR
+                self.LR_hdf5['data'] = self.LR_hdf5['data'][:, [2, 1, 0], :, :, :]
+                # convert data to F HWDC
+                self.LR_hdf5['data'] = np.transpose(self.LR_hdf5['data'], [0, 2, 3, 4, 1])
+        elif opt['data_format'] == 'Complex':
+            # TODO calculate channel mean
+            self.LR_hdf5['data'] = np.array(self.LR_hdf5['data'])
+            self.LR_hdf5['data'][:, :, :, :, 0] = self.LR_hdf5['data'][:, :, :, :, 0] + 73.54369  # -73.54369 input norm
+            self.LR_hdf5['data'][:, :, :, :, 1] = self.LR_hdf5['data'][:, :, :, :, 1] + 6.0050526  # -6.0050526 input norm
+
 
         if self.HR_hdf5 is not None:
             if self.HR_hdf5['data'].shape[1] == 3:
                 # convert data to BGR, F HWDC
-                self.HR_hdf5['data'] = np.transpose(self.HR_hdf5['data'][:, [2, 1, 0], :, :, :], [0, 2, 3, 4, 1])
+                self.HR_hdf5['data'] = self.HR_hdf5['data'][:, [2, 1, 0], :, :, :]
+                self.HR_hdf5['data'] = np.transpose(self.HR_hdf5['data'], [0, 2, 3, 4, 1])
             if 'data' in self.HR_hdf5 and 'data' in self.LR_hdf5:
                 assert len(self.HR_hdf5['data'])  == len(self.LR_hdf5['data']), \
                     'HR and LRx2 and LRx4 datasets have different number of images - {}, {}.'.format(
@@ -74,7 +84,7 @@ class LRHRDataset(data.Dataset):
         if self.HR_hdf5:
             if img_HR.shape[3] == 3:
                 img_HR = img_HR[:, :, :, [2, 1, 0]]
-            # HWC to CHW, numpy to tensor
+            # HWDC to CHWD, numpy to tensor
             img_HR = torch.from_numpy(np.ascontiguousarray(np.transpose(img_HR, (3, 0, 1, 2)))).float()
 
         # BGR to RGB,

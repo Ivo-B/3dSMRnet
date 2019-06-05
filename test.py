@@ -24,14 +24,13 @@ def main():
     # options
     parser = argparse.ArgumentParser()
     # TODO Remove
-    opt_p = 'E:\\repos\\mpisystemmatrix\\experiments\\007_Test_SR-RRDB-3d_scale4.json'    # JUST FOR TESTIN!!!!!!!
+    opt_p = 'E:\\repos\\3dSMRnet\\experiments\\007_Test_SR-RRDB-3d_scale4.json'    # JUST FOR TESTIN!!!!!!!
     parser.add_argument('-opt', default=opt_p, type=str, required=False, help='Path to option JSON file.')
 
     opt = option.parse(parser.parse_args().opt, is_train=False, is_tensorboard_available=is_tensorboard_available)
     opt = option.dict_to_nonedict(opt)
 
     run_config = opt['run_config']
-    optim_config = opt['optim_config']
     data_config = opt['data_config']
     util.mkdirs((path for key, path in run_config['path'].items() if not key == 'pretrain_model_G'))
 
@@ -46,15 +45,14 @@ def main():
         test_set = create_dataset(dataset_opt)
         test_loader = create_dataloader(test_set, dataset_opt)
         logger.info('Number of test images in [{:s}]: {:d}'.format(dataset_opt['name'], len(test_set)))
-        test_loaders.append(test_loader)
+        test_loaders.append([test_loader, len(test_set)])
 
     # Create model
     model = create_model(opt)
 
-    for test_loader in test_loaders:
+    for test_loader, total_images in test_loaders:
         test_set_name = test_loader.dataset.opt['name']
         logger.info('\nTesting [{:s}]...'.format(test_set_name))
-        test_start_time = time.time()
         dataset_dir = os.path.join(run_config['path']['results_root'], test_set_name)
         util.mkdir(dataset_dir)
 
@@ -66,6 +64,7 @@ def main():
         test_results['psnr_y'] = []
         test_results['ssim_y'] = []
         need_HR = False
+        num_images = 0
         for idx, data in enumerate(test_loader):
             need_HR = False if test_loader.dataset.opt['dataroot_HR'] is None else True
             start = timer()
@@ -73,41 +72,48 @@ def main():
             model.test()  # test
             end = timer()
             test_results['time'] += (end - start)
-            print(end - start)
             visuals = model.get_current_visuals(need_HR=need_HR)
+            visuals['hz'] = visuals['hz'].numpy()
             sr_imgs = OrderedDict([])
             lr_imgs = OrderedDict([])
+            num_images += len(visuals['hz'])
 
             for k in visuals.keys():
                 if 'SR' in k:
-                    sr_imgs[k] = (util.tensor2img(visuals[k], min_max=None, out_type=np.float32,
-                                                  as_grid=False))[np.newaxis, :, :, :, :]  # float32
+                    sr_imgs[k] = (util.tensor2img(visuals[k], min_max=None, out_type=np.float32, as_grid=False))# float32
+                    if sr_imgs[k].ndim == 4:
+                        sr_imgs[k] = sr_imgs[k][np.newaxis, :, :, :, :]
                 if 'LR' in k:
-                    lr_imgs[k] = (util.tensor2img(visuals[k], min_max=None, out_type=np.float32,
-                                                  as_grid=False))[np.newaxis, :, :, :, :]  # float32
+                    lr_imgs[k] = (util.tensor2img(visuals[k], min_max=None, out_type=np.float32, as_grid=False))# float32
+                    if lr_imgs[k].ndim == 4:
+                        lr_imgs[k] = lr_imgs[k][np.newaxis, :, :, :, :]
             if need_HR:
-                gt_img = util.tensor2img(visuals['HR'], min_max=None, out_type=np.float32,
-                                         as_grid=False)[np.newaxis, :, :, :, :]  # float32
+                gt_img = util.tensor2img(visuals['HR'], min_max=None, out_type=np.float32, as_grid=False)  # float32
+                if gt_img.ndim == 4:
+                    gt_img = gt_img[np.newaxis, :, :, :, :]
             else:
                 gt_img = None
 
             # save images
             for k in sr_imgs.keys():
-                img_name = "{0:d}_{1:s}".format(idx, str(Quantity(visuals['hz'].numpy(), 'hz')))
-                suffix = opt['suffix']
-                if suffix:
-                    save_img_path = os.path.join(dataset_dir, img_name + suffix + '.nii.gz')
-                else:
-                    save_img_path = os.path.join(dataset_dir, img_name + '.nii.gz')
+                for img_num in range(len(visuals['hz'])):
+                    img_name = "{0:d}_{1:s}".format(idx * lr_imgs['LR'].shape[0] + img_num, str(Quantity(visuals['hz'][img_num], 'hz')))
+                    suffix = opt['suffix']
+                    if suffix:
+                        save_img_path = os.path.join(dataset_dir, img_name + suffix + '.nii.gz')
+                    else:
+                        save_img_path = os.path.join(dataset_dir, img_name + '.nii.gz')
 
-                test_result_dataset.append(sr_imgs[k][0], visuals['hz'])
-                if idx % 1 == 0:
-                    util.showAndSaveSlice(sr_imgs, lr_imgs, gt_img, save_img_path.replace('.nii.gz', '.png'), slice = test_loader.dataset.opt['LRSize'] // 2,
-                                          scale=opt['model_config']['scale'], is_train=False)
+                    test_result_dataset.append(sr_imgs[k][img_num], visuals['hz'][img_num])
+                    if run_config['visual_examples']:
+                        util.showAndSaveSlice(sr_imgs, lr_imgs, gt_img, save_img_path.replace('.nii.gz', '.png'),
+                                              slice=test_loader.dataset.opt['LRSize'] // 2,
+                                              scale=opt['model_config']['scale'], is_train=False, index=img_num)
 
             # calculate PSNR and SSIM
             if need_HR:
                 # calculate PSNR
+                log_str = ""
                 for sr_k in sr_imgs.keys():
                     if 'x' in sr_k:  # find correct key
                         for lr_k in lr_imgs.keys():
@@ -127,11 +133,14 @@ def main():
                             test_results[sr_k]['mse'] = [mse]
                             test_results[sr_k]['rmse'] = [rmse]
                             test_results[sr_k]['psnr'] = [psnr]
-                        logger.info('{:20s} - MSE: {:.6f}; RMSE: {:.6f}; PSNR: {:.6f} dB.'.format(img_name, mse, rmse, psnr))
-            else:
-                logger.info(img_name)
+                    log_str += "\n\t\t{}  MSE: {:.6f}; RMSE: {:.6f}; PSNR: {:.6f} dB".format(
+                        sr_k, np.mean(test_results[sr_k]['mse']), np.mean(test_results[sr_k]['rmse']), np.mean(test_results[sr_k]['psnr']))
 
-        print("time: ", test_results['time'])
+            # else:
+            #     logger.info(img_name)
+            logger.info("System matrix {}/{}: {}".format(num_images, total_images, log_str))
+
+        logger.info("Processing time: ", test_results['time'])
         if need_HR:  # metrics
             for tr_k in test_results.keys():
                 # Average PSNR/SSIM results
@@ -140,7 +149,6 @@ def main():
                 ave_psnr = sum(test_results[tr_k]['psnr']) / len(test_results[tr_k]['psnr'])
                 logger.info('----Average PSNR/SSIM results for {} {}----\n\tMSE: {:.6f}; RMSE: {:.6f}; PSNR: {:.6f} dB.\n'\
                         .format(test_set_name, tr_k, ave_mse, ave_rmse, ave_psnr))
-
 
 
 if __name__ == "__main__":

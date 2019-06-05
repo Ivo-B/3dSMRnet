@@ -67,7 +67,7 @@ def setup_logger(logger_name, root, phase, level=logging.INFO, screen=False):
 ####################
 
 
-def tensor2img(tensor, out_type=np.uint8, min_max=(0, 1), as_grid=False):
+def tensor2img(tensor, out_type=np.uint8, min_max=(0, 1), as_grid=False, data_format='RGB'):
     '''
     Converts a torch Tensor into an image Numpy array
     Input: 4D(B,(3/1),H,W), 3D(C,H,W), or 2D(H,W), any range, RGB channel order
@@ -81,15 +81,19 @@ def tensor2img(tensor, out_type=np.uint8, min_max=(0, 1), as_grid=False):
     n_dim = tensor.dim()
     if n_dim == 5:
         img_np = tensor.numpy()
-        img_np = np.transpose(img_np[:, [2, 1, 0], :, :, :], (0, 2, 3, 4, 1))
-    if n_dim == 4:
+        if data_format == 'RGB':
+            img_np = img_np[:, [2, 1, 0], :, :, :] # to BGR
+        img_np = np.transpose(img_np, (0, 2, 3, 4, 1)) # to HWDC
+    elif n_dim == 4:
         if as_grid:
             n_img = len(tensor)
             img_np = make_grid(tensor, nrow=int(math.sqrt(n_img)), normalize=False).numpy()
             img_np = np.transpose(img_np[[2, 1, 0], :, :], (1, 2, 0))  # HWC, BGR
         else:
             img_np = tensor.numpy()
-            img_np = np.transpose(img_np[[2, 1, 0], :, :, :], (1, 2, 3, 0))
+            if data_format == 'RGB':
+                img_np = img_np[[2, 1, 0], :, :, :]  # to BGR
+            img_np = np.transpose(img_np, (1, 2, 3, 0)) # to HWDC
     elif n_dim == 3:
         img_np = tensor.numpy()
         img_np = np.transpose(img_np[[2, 1, 0], :, :], (1, 2, 0))  # HWC, BGR
@@ -119,8 +123,26 @@ def save_img(vol, img_path, mode='RGB', spacing=1.0):
 from collections import OrderedDict
 import matplotlib.pyplot as plt
 import re
+from matplotlib import colors
 
-def showAndSaveSlice(sr_bVols, lr_bVols, gt_bVol, save_img_path, slice=20, index=0, scale=4, is_train=True):
+def complex_array_to_rgb(X, theme='dark', rmax=None):
+    '''Takes an array of complex number and converts it to an array of [r, g, b],
+    where phase gives hue and saturaton/value are given by the absolute value.
+    Especially for use with imshow for complex plots.'''
+
+    absmax = rmax or np.abs(X).max()
+    Y = np.zeros(X.shape + (3,), dtype='float')
+    Y[..., 0] = np.angle(X) / (2 * np.pi) % 1
+    if theme == 'light':
+        Y[..., 1] = np.clip(np.abs(X) / absmax, 0, 1)
+        Y[..., 2] = 1
+    elif theme == 'dark':
+        Y[..., 1] = 1
+        Y[..., 2] = np.clip(np.abs(X) / absmax, 0, 1)
+    Y = colors.hsv_to_rgb(Y)
+    return Y
+
+def showAndSaveSlice(sr_bVols, lr_bVols, gt_bVol, save_img_path, slice=20, index=0, scale=4, is_train=True, data_format='RGB'):
     def norm_color(slice, vmin, vmax):
         slice = (slice - vmin) / (vmax - vmin)
         slice[slice < 0.0] = 0.
@@ -128,7 +150,13 @@ def showAndSaveSlice(sr_bVols, lr_bVols, gt_bVol, save_img_path, slice=20, index
         return slice
     if is_train:
         # Using RGB
-        gt_slice = gt_bVol[index, :, :, slice, :][:, :, [2, 1, 0]]  # BGR->RGB
+        if data_format == 'RGB':
+            gt_slice = gt_bVol[index, :, :, slice, :][:, :, [2, 1, 0]]  # BGR->RGB
+        else:
+            #convert imag real to complex
+            gt_slice = gt_bVol[index, :, :, slice, :]
+            gt_slice = gt_slice[..., 1] + 1j * gt_slice[..., 0]
+            gt_slice = complex_array_to_rgb(gt_slice)
         vmin = gt_slice.min()
         vmax = gt_slice.max()
         gt_slice = norm_color(gt_slice, vmin, vmax)  # color sync
@@ -138,15 +166,31 @@ def showAndSaveSlice(sr_bVols, lr_bVols, gt_bVol, save_img_path, slice=20, index
 
         for i, k in enumerate(sr_bVols.keys()):
             slice_tmp = slice // int(re.findall(r'\d+', k)[0]) if re.findall(r'\d+', k) else slice
-            sr_slices[k] = sr_bVols[k][index, :, :, slice_tmp, :][:, :, [2, 1, 0]]  # BGR->RGB
+            sr_slices[k] = sr_bVols[k][index, :, :, slice_tmp, :]
+            if data_format == 'RGB':
+                sr_slices[k] = sr_slices[k][:, :, [2, 1, 0]]  # BGR->RGB
+            else:
+                # convert imag real to complex
+                sr_slices[k] = sr_slices[k][..., 1] + 1j * sr_slices[k][..., 0]
+                sr_slices[k] = complex_array_to_rgb(sr_slices[k])
             sr_slices[k] = norm_color(sr_slices[k], vmin, vmax)  # color sync
 
         for i, k in enumerate(lr_bVols.keys()):
             slice_tmp = slice // int(re.findall(r'\d+', k)[0]) if re.findall(r'\d+', k) else slice // scale
-            lr_slices[k] = lr_bVols[k][index, :, :, slice_tmp, :][:, :, [2, 1, 0]]  # BGR->RGB
+            lr_slices[k] = lr_bVols[k][index, :, :, slice_tmp, :]
             if i == 0:
                 #lr_slices[k] *= 1685.1255  # invert input norm
-                lr_slices[k] += 236.17393  # invert input norm
+                if data_format == 'RGB':
+                    lr_slices[k] += 236.17393  # invert input norm
+                elif data_format == 'Complex':
+                    lr_slices[k][:, :, 0] = lr_slices[k][:, :, 0] - 73.54369  # invert input norm
+                    lr_slices[k][:, :, 1] = lr_slices[k][:, :, 1] - 6.0050526  # invert input norm
+            if data_format == 'RGB':
+                lr_slices[k] = lr_slices[k][:, :, [2, 1, 0]]  # BGR->RGB
+            else:
+                # convert imag real to complex
+                lr_slices[k] = lr_slices[k][..., 1] + 1j * lr_slices[k][..., 0]
+                lr_slices[k] = complex_array_to_rgb(lr_slices[k])
             lr_slices[k] = norm_color(lr_slices[k], vmin, vmax)  # color sync
 
         num_col = len(lr_slices) + 1
@@ -154,13 +198,13 @@ def showAndSaveSlice(sr_bVols, lr_bVols, gt_bVol, save_img_path, slice=20, index
 
         fig, axes = plt.subplots(num_row, num_col)
         for i, k in enumerate(lr_slices.keys()):
-            axes[0, i].imshow(lr_slices[k], vmin=vmin, vmax=vmax)
+            axes[0, i].imshow(lr_slices[k], vmin=0, vmax=1)
             axes[0, i].set_title(k)
         axes[0, -1].imshow(gt_slice)
         axes[0, -1].set_title('GT')
 
         for i, k in enumerate(sr_slices.keys()):
-            axes[1, i+1].imshow(sr_slices[k], vmin=vmin, vmax=vmax)
+            axes[1, i+1].imshow(sr_slices[k], vmin=0, vmax=1)
             axes[1, i+1].set_title(k)
     else:
         lr_slices = OrderedDict([])

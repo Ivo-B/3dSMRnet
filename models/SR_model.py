@@ -176,15 +176,15 @@ class SRModel(BaseModel):
     def get_current_visuals(self, need_HR=True):
         out_dict = OrderedDict()
         if self.is_LRx2x4:
-            out_dict['LRx4'] = self.var_Lx4.detach()[0].float().cpu()
-            out_dict['LRx2'] = self.var_Lx2.detach()[0].float().cpu()
-            out_dict['SRx2'] = self.fake_Hx2.detach()[0].float().cpu()
-            out_dict['SR'] = self.fake_H.detach()[0].float().cpu()
+            out_dict['LRx4'] = self.var_Lx4.detach().float().cpu()
+            out_dict['LRx2'] = self.var_Lx2.detach().float().cpu()
+            out_dict['SRx2'] = self.fake_Hx2.detach().float().cpu()
+            out_dict['SR'] = self.fake_H.detach().float().cpu()
         else:
-            out_dict['LR'] = self.var_L.detach()[0].float().cpu()
-            out_dict['SR'] = self.fake_H.detach()[0].float().cpu()
+            out_dict['LR'] = self.var_L.detach().float().cpu()
+            out_dict['SR'] = self.fake_H.detach().float().cpu()
         if need_HR:
-            out_dict['HR'] = self.real_H.detach()[0].float().cpu()
+            out_dict['HR'] = self.real_H.detach().float().cpu()
         out_dict['hz'] = self.hz
         return out_dict
 

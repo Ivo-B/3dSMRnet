@@ -32,7 +32,7 @@ def main():
     # parse command line arguments
     parser = argparse.ArgumentParser(description="PyTorch LapSRN")
 
-    opt_p = 'E:\\repos\\mpisystemmatrix\\experiments/013_Train_SR-RRDB-3d_Synomag_scale3.json'
+    opt_p = 'E:\\repos\\3dSMRnet\\experiments/0014_Train_SR-RRDB-3d_SynomagD_scale4.json'
     parser.add_argument('-opt', default=opt_p, type=str, required=False, help='Path to option JSON file.')
 
     config = option.parse(parser.parse_args().opt, True, is_tensorboard_available)
@@ -155,6 +155,7 @@ def main():
                 avg_metric = OrderedDict([])
 
                 idx = 0
+                total_images = 0
                 img_dir = os.path.join(run_config['path']['val_images'])
                 util.mkdir(img_dir)
                 for val_data in val_loader:
@@ -164,18 +165,25 @@ def main():
                     model.test()
 
                     visuals = model.get_current_visuals()
+                    visuals['hz'] = visuals['hz'].numpy()
                     sr_imgs = OrderedDict([])
                     lr_imgs = OrderedDict([])
 
                     for k in visuals.keys():
                         if 'SR' in k:
                             sr_imgs[k] = (util.tensor2img(visuals[k], min_max=None, out_type=np.float32,
-                                                          as_grid=False))[np.newaxis,:,:,:,:]  # float32
+                                                          as_grid=False, data_format='Complex'))  # float32
+                            if sr_imgs[k].ndim == 4:
+                                sr_imgs[k] = sr_imgs[k][np.newaxis, :, :, :, :]
                         if 'LR' in k:
                             lr_imgs[k] = (util.tensor2img(visuals[k], min_max=None, out_type=np.float32,
-                                                          as_grid=False))[np.newaxis, :, :, :, :]  # float32
+                                                          as_grid=False, data_format='Complex'))  # float32
+                            if lr_imgs[k].ndim == 4:
+                                lr_imgs[k] = lr_imgs[k][np.newaxis, :, :, :, :]
                     gt_img = util.tensor2img(visuals['HR'], min_max=None, out_type=np.float32,
-                                             as_grid=False)[np.newaxis, :, :, :, :]  # float32
+                                             as_grid=False, data_format='Complex')
+                    if gt_img.ndim == 4:
+                        gt_img = gt_img[np.newaxis, :, :, :, :]
 
                     # calculate PSNR
                     for sr_k in sr_imgs.keys():
@@ -199,11 +207,16 @@ def main():
                                 avg_metric[sr_k]['psnr'] = psnr
 
                     # Save SR images for reference
-                    if idx < 10:
-                        img_name = "{0:d}_{1:s}_{2:d}.png".format(idx, str(Quantity(visuals['hz'].numpy(), 'hz')), current_step)
-                        save_img_path = os.path.join(img_dir, img_name)
-                        util.showAndSaveSlice(sr_imgs, lr_imgs, gt_img, save_img_path, scale=config['model_config']['scale'])
+                    for img_num in range(len(visuals['hz'])):
+                        if total_images % 40 == 0:
+                            img_name = "{0:d}_{1:s}_{2:d}.png".format(total_images,
+                                                                      str(Quantity(visuals['hz'][img_num], 'hz')),
+                                                                      current_step)
 
+                            save_img_path = os.path.join(img_dir, img_name)
+                            util.showAndSaveSlice(sr_imgs, lr_imgs, gt_img, save_img_path,
+                                                  scale=config['model_config']['scale'], index=img_num, data_format='Complex')
+                        total_images += 1
                 log_str = '# Validation #'
                 log_str2 = '<epoch:{:3d}, iter:{:8,d}>'.format(epoch, current_step)
                 for k in avg_metric.keys():
