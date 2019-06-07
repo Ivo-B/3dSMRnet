@@ -1,4 +1,4 @@
-This repository contains the official code and model weights for the following arXiv [paper](https://tmp) (Submitted to MICCAI 2019):
+This repository contains the official code and model weights for the following arXiv [paper](https://arxiv.org/abs/1905.03026) (Submitted to MICCAI 2019):
 
 ```
 @ARTICLE{Baltruschat3dSMRNet2019,
@@ -19,4 +19,4 @@ The code has been tested with Python 3.6 on Ubuntu 16.04 LTS. The following Pyth
 
 
 ## Basic Usage
-For downloading model weights and normalization factors (NiftyReg, plastimatch and VarReg) please see [here](https://github.com/Ivo-B/3dSMRnet/releases/latest).
+For downloading model weights and system matrices (Synomag-D, and Perimag) please see [here](https://github.com/Ivo-B/3dSMRnet/releases/latest).
