@@ -7,6 +7,11 @@ from torchvision.utils import make_grid
 import random
 import torch
 import logging
+from collections import OrderedDict
+import matplotlib.pyplot as plt
+import re
+from matplotlib import colors
+import h5py
 
 ####################
 # miscellaneous
@@ -45,6 +50,7 @@ def set_random_seed(seed):
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
+
 
 def setup_logger(logger_name, root, phase, level=logging.INFO, screen=False):
     '''set up logger'''
@@ -120,11 +126,6 @@ def save_img(vol, img_path, mode='RGB', spacing=1.0):
     #cv2.imwrite(img_path, img)
 
 
-from collections import OrderedDict
-import matplotlib.pyplot as plt
-import re
-from matplotlib import colors
-
 def complex_array_to_rgb(X, theme='dark', rmax=None):
     '''Takes an array of complex number and converts it to an array of [r, g, b],
     where phase gives hue and saturaton/value are given by the absolute value.
@@ -140,7 +141,8 @@ def complex_array_to_rgb(X, theme='dark', rmax=None):
         Y[..., 1] = 1
         Y[..., 2] = np.clip(np.abs(X) / absmax, 0, 1)
     Y = colors.hsv_to_rgb(Y)
-    return Y
+    return Y, absmax
+
 
 def showAndSaveSlice(sr_bVols, lr_bVols, gt_bVol, save_img_path, slice=20, index=0, scale=4, is_train=True, data_format='RGB'):
     def norm_color(slice, vmin, vmax):
@@ -148,55 +150,73 @@ def showAndSaveSlice(sr_bVols, lr_bVols, gt_bVol, save_img_path, slice=20, index
         slice[slice < 0.0] = 0.
         slice[slice > 1.0] = 1.
         return slice
-    if is_train:
-        # Using RGB
+
+    normVal = None
+    if gt_bVol is not None:
         if data_format == 'RGB':
             gt_slice = gt_bVol[index, :, :, slice, :][:, :, [2, 1, 0]]  # BGR->RGB
+            normVal = [gt_slice.min(), gt_slice.max()]
+            gt_slice = norm_color(gt_slice, normVal[0], normVal[1])  # color sync
         else:
-            #convert imag real to complex
+            # convert imag real to complex
             gt_slice = gt_bVol[index, :, :, slice, :]
             gt_slice = gt_slice[..., 1] + 1j * gt_slice[..., 0]
-            gt_slice = complex_array_to_rgb(gt_slice)
-        vmin = gt_slice.min()
-        vmax = gt_slice.max()
-        gt_slice = norm_color(gt_slice, vmin, vmax)  # color sync
+            gt_slice, normVal = complex_array_to_rgb(gt_slice)
 
-        lr_slices = OrderedDict([])
-        sr_slices = OrderedDict([])
-
-        for i, k in enumerate(sr_bVols.keys()):
-            slice_tmp = slice // int(re.findall(r'\d+', k)[0]) if re.findall(r'\d+', k) else slice
-            sr_slices[k] = sr_bVols[k][index, :, :, slice_tmp, :]
-            if data_format == 'RGB':
-                sr_slices[k] = sr_slices[k][:, :, [2, 1, 0]]  # BGR->RGB
-            else:
-                # convert imag real to complex
-                sr_slices[k] = sr_slices[k][..., 1] + 1j * sr_slices[k][..., 0]
-                sr_slices[k] = complex_array_to_rgb(sr_slices[k])
-            sr_slices[k] = norm_color(sr_slices[k], vmin, vmax)  # color sync
-
-        for i, k in enumerate(lr_bVols.keys()):
+    lr_slices = OrderedDict([])
+    sr_slices = OrderedDict([])
+    for i, k in enumerate(lr_bVols.keys()):
+        if is_train:
             slice_tmp = slice // int(re.findall(r'\d+', k)[0]) if re.findall(r'\d+', k) else slice // scale
-            lr_slices[k] = lr_bVols[k][index, :, :, slice_tmp, :]
-            if i == 0:
-                #lr_slices[k] *= 1685.1255  # invert input norm
-                if data_format == 'RGB':
-                    lr_slices[k] += 236.17393  # invert input norm
-                elif data_format == 'Complex':
-                    lr_slices[k][:, :, 0] = lr_slices[k][:, :, 0] - 73.54369  # invert input norm
-                    lr_slices[k][:, :, 1] = lr_slices[k][:, :, 1] - 6.0050526  # invert input norm
+        else:
+            slice_tmp = (slice * scale) // int(re.findall(r'\d+', k)[0]) if re.findall(r'\d+', k) else slice
+
+        lr_slices[k] = lr_bVols[k][index, :, :, slice_tmp, :]
+        if i == 0:
             if data_format == 'RGB':
-                lr_slices[k] = lr_slices[k][:, :, [2, 1, 0]]  # BGR->RGB
-            else:
+                lr_slices[k] += 236.17393  # invert input norm
+                if normVal is None:
+                    normVal = [lr_slices[k].min(), lr_slices[k].max()]
+            elif data_format == 'Complex':
+                lr_slices[k][:, :, 0] = (lr_slices[k][:, :, 0] * 3396.1528) - 73.54369  # invert input norm
+                lr_slices[k][:, :, 1] = (lr_slices[k][:, :, 1] * 3714.9639) - 6.0050526  # invert input norm
                 # convert imag real to complex
-                lr_slices[k] = lr_slices[k][..., 1] + 1j * lr_slices[k][..., 0]
-                lr_slices[k] = complex_array_to_rgb(lr_slices[k])
-            lr_slices[k] = norm_color(lr_slices[k], vmin, vmax)  # color sync
+                if normVal is None:
+                    _, normVal = complex_array_to_rgb(lr_slices[k][..., 1] + 1j * lr_slices[k][..., 0])
+            else:
+                raise NotImplementedError('DataFormat [{:s}] not recognized.'.format(data_format))
+        if data_format == 'RGB':
+            lr_slices[k] = lr_slices[k][:, :, [2, 1, 0]]  # BGR->RGB
+            lr_slices[k] = norm_color(lr_slices[k], normVal[0], normVal[1])  # color sync
+        elif data_format == 'Complex':
+            # convert imag real to complex
+            lr_slices[k] = lr_slices[k][..., 1] + 1j * lr_slices[k][..., 0]
+            lr_slices[k], _ = complex_array_to_rgb(lr_slices[k], rmax=normVal)
+        else:
+            raise NotImplementedError('DataFormat [{:s}] not recognized.'.format(data_format))
 
+    for i, k in enumerate(sr_bVols.keys()):
+        if is_train:
+            slice_tmp = slice // int(re.findall(r'\d+', k)[0]) if re.findall(r'\d+', k) else slice
+        else:
+            slice_tmp = slice * int(re.findall(r'\d+', k)[0]) if re.findall(r'\d+', k) else slice * scale
+        sr_slices[k] = sr_bVols[k][index, :, :, slice_tmp, :]
+
+        if data_format == 'RGB':
+            sr_slices[k] = sr_slices[k][:, :, [2, 1, 0]]  # BGR->RGB
+            sr_slices[k] = norm_color(sr_slices[k], normVal[0], normVal[1])  # color sync
+        elif data_format == 'Complex':
+            # convert imag real to complex
+            sr_slices[k] = sr_slices[k][..., 1] + 1j * sr_slices[k][..., 0]
+            sr_slices[k], _ = complex_array_to_rgb(sr_slices[k], rmax=normVal)
+        else:
+            raise NotImplementedError('DataFormat [{:s}] not recognized.'.format(data_format))
+
+    num_row = 2
+    if gt_bVol is not None:
         num_col = len(lr_slices) + 1
-        num_row = 2
-
         fig, axes = plt.subplots(num_row, num_col)
+        fig.delaxes(axes[1][0])
         for i, k in enumerate(lr_slices.keys()):
             axes[0, i].imshow(lr_slices[k], vmin=0, vmax=1)
             axes[0, i].set_title(k)
@@ -207,60 +227,19 @@ def showAndSaveSlice(sr_bVols, lr_bVols, gt_bVol, save_img_path, slice=20, index
             axes[1, i+1].imshow(sr_slices[k], vmin=0, vmax=1)
             axes[1, i+1].set_title(k)
     else:
-        lr_slices = OrderedDict([])
-        sr_slices = OrderedDict([])
-
-        for i, k in enumerate(sr_bVols.keys()):
-            slice_tmp = slice * int(re.findall(r'\d+', k)[0]) if re.findall(r'\d+', k) else slice * scale
-            sr_slices[k] = sr_bVols[k][index, :, :, slice_tmp, :][:, :, [2, 1, 0]]  # BGR->RGB
-            if i == len(sr_bVols) - 1:
-                vmax = sr_slices[k].max()
-
-        for i, k in enumerate(lr_bVols.keys()):
-            slice_tmp = (slice * scale) // int(re.findall(r'\d+', k)[0]) if re.findall(r'\d+', k) else slice
-            lr_slices[k] = lr_bVols[k][index, :, :, slice_tmp, :][:, :, [2, 1, 0]]  # BGR->RGB
-            if i == 0:
-                lr_slices[k] += 236.17393  # invert input norm
-
-        if gt_bVol is not None:
-            # Using RGB
-            gt_slice = gt_bVol[index, :, :, slice * scale, :][:, :, [2, 1, 0]]  # BGR->RGB
-            vmin = gt_slice.min()
-            vmax = gt_slice.max()
-            gt_slice = norm_color(gt_slice, vmin, vmax)  # color sync
-
-            num_col = len(lr_slices) + 1
-            num_row = 2
-
-            fig, axes = plt.subplots(num_row, num_col)
-            for i, k in enumerate(lr_slices.keys()):
-                axes[0, i].imshow(norm_color(lr_slices[k], vmin, vmax), vmin=vmin, vmax=vmax)
-                axes[0, i].set_title(k)
-            axes[0, -1].imshow(gt_slice)
-            axes[0, -1].set_title('GT')
-
-            for i, k in enumerate(sr_slices.keys()):
-                axes[1, i + 1].imshow(norm_color(sr_slices[k], vmin, vmax), vmin=vmin, vmax=vmax)
-                axes[1, i + 1].set_title(k)
-
-        else:
-            vmin = 0 # color sync
-            num_col = len(sr_slices) + 1
-            fig, axes = plt.subplots(1, num_col)
-            for i, k in enumerate(lr_slices.keys()):
-                axes[i].imshow(norm_color(lr_slices[k], vmin, vmax), vmin=vmin, vmax=vmax)
-                axes[i].set_title(k)
-            for i, k in enumerate(sr_slices.keys()):
-                axes[i+1].imshow(norm_color(sr_slices[k], vmin, vmax), vmin=vmin, vmax=vmax)
-                axes[i+1].set_title(k)
-
-    plt.savefig(save_img_path)
+        num_col = len(sr_slices) + 1
+        fig, axes = plt.subplots(1, num_col)
+        fig.delaxes(axes[1][0])
+        for i, k in enumerate(lr_slices.keys()):
+            axes[i].imshow(lr_slices[k], vmin=0, vmax=1)
+            axes[i].set_title(k)
+        for i, k in enumerate(sr_slices.keys()):
+            axes[i + 1].imshow(sr_slices[k], vmin=0, vmax=1)
+            axes[i + 1].set_title(k)
+    fig.tight_layout()
+    fig.savefig(save_img_path)
     plt.close()
-    #plt.show()
 
-
-import numpy as np
-import h5py
 
 class HDF5Store(object):
     """
@@ -356,6 +335,7 @@ class AverageMeter(object):
     def average(self):
         return self.avg
 
+
 def calculate_mse_rmse_psnr(vol_predict, vol_true):
     # calculate volumen metrics
     mse = np.square(vol_true - vol_predict).mean()
@@ -366,16 +346,6 @@ def calculate_mse_rmse_psnr(vol_predict, vol_true):
     else:
         psnr = 20.0 * np.log10(vol_true.max() / rmse)
     return mse, rmse, psnr
-
-
-def calculate_psnr(img1, img2):
-    # img1 and img2 have range [0, 255]
-    img1 = img1.astype(np.float64)
-    img2 = img2.astype(np.float64)
-    mse = np.mean((img1 - img2)**2)
-    if mse == 0:
-        return float('inf')
-    return 20 * math.log10(255.0 / math.sqrt(mse))
 
 
 def ssim(img1, img2):

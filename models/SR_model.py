@@ -14,8 +14,6 @@ from utils.util import AverageMeter
 logger = logging.getLogger('base')
 
 
-
-
 class SRModel(BaseModel):
     def __init__(self, opt):
         super(SRModel, self).__init__(opt)
@@ -26,7 +24,6 @@ class SRModel(BaseModel):
         self.load()
 
         if self.is_train:
-            self.is_LRx2x4 = "LRx2x4" in opt['data_config']['train']['mode']
             self.netG.train()
 
             # loss
@@ -75,10 +72,6 @@ class SRModel(BaseModel):
                 self.log_dict['lx2_pix'] = AverageMeter()
             self.log_dict['l_pix'] = AverageMeter()
 
-        elif 'val' in opt['data_config']:
-            self.is_LRx2x4 = "LRx2x4" in opt['data_config']['val']['mode']
-        else:
-            self.is_LRx2x4 = "LRx2x4" in opt['data_config']['test_2']['mode']
         # print network
         self.print_network()
 

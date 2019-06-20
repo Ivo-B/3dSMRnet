@@ -8,13 +8,16 @@ class BaseModel():
         self.opt = opt
         self.device = torch.device('cuda' if opt['run_config']['gpu_ids'] else 'cpu')
         self.is_train = opt['run_config']['is_train']
+
+        data_mode = list(opt['data_config'].values())[0]['mode']
+        self.is_LRx2x4 = "LRx2x4" in data_mode
         self.schedulers = []
         self.optimizers = []
 
     def feed_data(self, data):
         pass
 
-    def optimize_parameters(self):
+    def optimize_parameters(self, step):
         pass
 
     def get_current_visuals(self):

@@ -3,8 +3,9 @@ import os.path as osp
 import logging
 from collections import OrderedDict
 import json
-
 import re
+
+logger = logging.getLogger('base')
 
 
 def parse(opt_path, is_train=True, is_tensorboard_available=True):
@@ -18,7 +19,7 @@ def parse(opt_path, is_train=True, is_tensorboard_available=True):
 
     if not is_tensorboard_available:
         opt['run_config']['use_tb_logger'] = False
-        print('TensorboardX support not available')
+        logger.info('TensorboardX support not available')
     opt['run_config']['id'] = opt['run_config']['id'] + '_' + opt['run_config']['num']
     opt['run_config']['is_train'] = is_train
 
@@ -55,15 +56,6 @@ def parse(opt_path, is_train=True, is_tensorboard_available=True):
         results_root = os.path.join(opt['run_config']['path']['root'], 'results', opt['run_config']['id'])
         opt['run_config']['path']['results_root'] = results_root
         opt['run_config']['path']['log'] = results_root
-
-    #num_channels = int(opt['model_config']['network_G']['in_nc'])
-    #LR_size = int(opt['data_config']['train']['HR_size'] / opt['model_config']['scale'])
-    #if 'LapSRN' in opt['model_config']['model']:
-    #    assert opt['data_config']['train']['HR_size'] % opt['model_config']['scale'] == 0
-    #opt['model_config']['input_shape'] = (num_channels, LR_size, LR_size, LR_size)
-
-    #opt['optim_config']['max_iters'] = opt['optim_config']["epoch_iters"] * opt['optim_config']["epochs"]
-    #opt['optim_config']['running_lr'] = opt['optim_config']['base_lr']
 
     # export CUDA_VISIBLE_DEVICES
     gpu_list = ','.join(str(x) for x in opt['run_config']['gpu_ids'])

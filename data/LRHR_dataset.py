@@ -10,12 +10,9 @@ import h5py
 import numpy as np
 import logging
 
-#TODO: Change to only load single LRHR pair
 class LRHRDataset(data.Dataset):
     '''
     Read LR and HR image pairs.
-    If only HR image is provided, generate LR image on-the-fly.
-    The pair is ensured by 'sorted' function, so please check the name convention.
     '''
 
     def __init__(self, opt, ):
@@ -47,12 +44,16 @@ class LRHRDataset(data.Dataset):
                 self.LR_hdf5['data'] = self.LR_hdf5['data'][:, [2, 1, 0], :, :, :]
                 # convert data to F HWDC
                 self.LR_hdf5['data'] = np.transpose(self.LR_hdf5['data'], [0, 2, 3, 4, 1])
+            assert self.LR_hdf5['data'].shape[4] == 3, 'DataFormat [{}] does not match channel dim [{}]'.format(
+                opt['data_format'], self.LR_hdf5['data'].shape[4])
         elif opt['data_format'] == 'Complex':
-            # TODO calculate channel mean
+            assert self.LR_hdf5['data'].shape[4] == 2, 'DataFormat [{}] does not match channel dim [{}]'.format(
+                opt['data_format'], self.LR_hdf5['data'].shape[4])
             self.LR_hdf5['data'] = np.array(self.LR_hdf5['data'])
-            self.LR_hdf5['data'][:, :, :, :, 0] = self.LR_hdf5['data'][:, :, :, :, 0] + 73.54369  # -73.54369 input norm
-            self.LR_hdf5['data'][:, :, :, :, 1] = self.LR_hdf5['data'][:, :, :, :, 1] + 6.0050526  # -6.0050526 input norm
-
+            self.LR_hdf5['data'][:, :, :, :, 0] = (self.LR_hdf5['data'][:, :, :, :, 0] + 73.54369) / 3396.1528  # -73.54369 input norm
+            self.LR_hdf5['data'][:, :, :, :, 1] = (self.LR_hdf5['data'][:, :, :, :, 1] + 6.0050526) / 3714.9639 # -6.0050526 input norm
+        else:
+            raise NotImplementedError('DataFormat [{:s}] not recognized.'.format(opt['data_format']))
 
         if self.HR_hdf5 is not None:
             if self.HR_hdf5['data'].shape[1] == 3:

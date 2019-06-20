@@ -31,11 +31,15 @@ def load_dataset(file_path, load_complex=False):
                 if load_complex:
                     dset_imag = np.array(hf['DataImag']).astype(np.float32)[:, np.newaxis, :, :, :]
                     print(np.mean(dset_imag))
+                    print(np.std(dset_imag))
                     dset_real = np.array(hf['DataReal']).astype(np.float32)[:, np.newaxis, :, :, :]
                     print(np.mean(dset_real))
+                    print(np.std(dset_real))
                     dset_rgb = np.concatenate((dset_imag,  dset_real), axis=1)
                 elif dset_rgb is None:
                     dset_rgb = np.array(hf[key]).astype(np.float32)
+                    print(np.mean(dset_real))
+                    print(np.std(dset_real))
             if 'hz' in key.lower():
                 dset_hz = np.array(hf[key]).astype(np.float32)
 
@@ -62,9 +66,8 @@ def save_dataset(dataset, dataset_hz, file_path):
         hf.create_dataset("data", data=dataset)
         hf.create_dataset("hz", data=dataset_hz)
 
+
 def main():
-    # file_name = 'Data9x9x9x3x8391Perimag_SNR1.h5'
-    # file_name = 'Data37x37x37x3x3175Perimag_SNR3.h5'
     file_names = ['Data37x37x37x3x3175Perimag_SNR3.h5']
     file_names += ['Data37x37x37x3x3929SynomagPEG_SNR3.h5']
     file_name_outs = ["Perimag"]

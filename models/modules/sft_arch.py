@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+# TODO: Add 3d support !!
 class SFTLayer(nn.Module):
     def __init__(self):
         super(SFTLayer, self).__init__()

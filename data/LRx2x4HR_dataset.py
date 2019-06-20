@@ -11,9 +11,7 @@ import logging
 
 class LRx2x4HRDataset(data.Dataset):
     '''
-    Read LR and HR image pairs.
-    If only HR image is provided, generate LR image on-the-fly.
-    The pair is ensured by 'sorted' function, so please check the name convention.
+    Read LR 2 times subsampling, 4 times subsampling and HR images.
     '''
 
     def __init__(self, opt):
@@ -21,15 +19,17 @@ class LRx2x4HRDataset(data.Dataset):
         self.logger = logging.getLogger('base')
         self.opt = opt
 
-        self.HR_hdf5 = OrderedDict()
+        self.HR_hdf5 = OrderedDict() if opt['dataroot_HR'] else None
         self.LRx2_hdf5 = OrderedDict()
         self.LRx4_hdf5 = OrderedDict()
 
         # read SM from hdf5 file
-        with h5py.File(opt['dataroot_HR']) as hf:
-            self.logger.info('Read hdf5: {}'.format(opt['dataroot_HR']))
-            for key, value in hf.items():
-                self.HR_hdf5[key] = np.array(value)
+        if self.HR_hdf5 is not None:
+            with h5py.File(opt['dataroot_HR']) as hf:
+                self.logger.info('Read hdf5: {}'.format(opt['dataroot_HR']))
+                for key, value in hf.items():
+                    self.HR_hdf5[key] = np.array(value)
+
         with h5py.File(opt['dataroot_LRx2']) as hf:
             self.logger.info('Read hdf5: {}'.format(opt['dataroot_LRx2']))
             for key, value in hf.items():

@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 
 
+# Used of LapSRNet3D
 class L1CharbonnierLoss(nn.Module):
     """L1 Charbonnierloss."""
     def __init__(self):

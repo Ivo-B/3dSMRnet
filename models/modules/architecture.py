@@ -82,21 +82,6 @@ class LapSRNet3D(nn.Module):
 
         return HR_2x, HR_4x
 
-        # convt_f = []
-        # convt_i = []
-        # return_up = []
-        #
-        # for idx in range(self.upscale // 2):
-        #     if idx == 0:
-        #         convt_f.append(self.convt_f[idx](out))
-        #         convt_i.append(self.convt_i[idx](x))
-        #         return_up.append(convt_i[idx] + self.convt_r[idx](convt_f[idx]))
-        #     else:
-        #         convt_f.append(self.convt_f[idx](convt_f[idx - 1]))
-        #         convt_i.append(self.convt_i[idx](return_up[idx - 1]))
-        #         return_up.append(convt_i[idx] + self.convt_r[idx](convt_f[idx]))
-        #return return_up
-
 
 class SRResNet(nn.Module):
     def __init__(self, in_nc, out_nc, nf, nb, upscale=4, norm_type='batch', act_type='relu', \
@@ -158,8 +143,8 @@ class RRDBNet(nn.Module):
         HR_conv0 = B.conv_block(nf, nf, kernel_size=3, norm_type=None, act_type=act_type)
         HR_conv1 = B.conv_block(nf, out_nc, kernel_size=3, norm_type=None, act_type=None)
 
-        self.model = B.sequential(fea_conv, B.ShortcutBlock(B.sequential(*rb_blocks, LR_conv)),\
-            *upsampler, HR_conv0, HR_conv1)
+        self.model = B.sequential(fea_conv, B.ShortcutBlock(B.sequential(*rb_blocks, LR_conv)),
+                                  *upsampler, HR_conv0, HR_conv1)
 
     def forward(self, x):
         x = self.model(x)
@@ -209,43 +194,43 @@ class Discriminator_VGG_40(nn.Module):
         x = self.classifier(x)
         return x
 
-    # VGG style Discriminator with input size 20*20*20
-    class Discriminator_VGG_20(nn.Module):
-        def __init__(self, in_nc, base_nf, norm_type='batch', act_type='leakyrelu', mode='CNA'):
-            super(Discriminator_VGG_20, self).__init__()
-            # features
-            # hxw, c
-            # 20, 64
-            conv0 = B.conv_block(in_nc, base_nf, kernel_size=3, norm_type=None, act_type=act_type, \
-                                 mode=mode)
-            conv1 = B.conv_block(base_nf, base_nf, kernel_size=4, stride=1, norm_type=norm_type, \
-                                 act_type=act_type, mode=mode)
-            # 20, 64
-            conv2 = B.conv_block(base_nf, base_nf * 2, kernel_size=3, stride=1, norm_type=norm_type, \
-                                 act_type=act_type, mode=mode)
-            conv3 = B.conv_block(base_nf * 2, base_nf * 2, kernel_size=4, stride=2, norm_type=norm_type, \
-                                 act_type=act_type, mode=mode)
-            # 10, 128
-            conv4 = B.conv_block(base_nf * 2, base_nf * 4, kernel_size=3, stride=1, norm_type=norm_type, \
-                                 act_type=act_type, mode=mode)
-            conv5 = B.conv_block(base_nf * 4, base_nf * 4, kernel_size=4, stride=2, norm_type=norm_type, \
-                                 act_type=act_type, mode=mode)
-            # 5, 256
+# VGG style Discriminator with input size 20*20*20
+class Discriminator_VGG_20(nn.Module):
+    def __init__(self, in_nc, base_nf, norm_type='batch', act_type='leakyrelu', mode='CNA'):
+        super(Discriminator_VGG_20, self).__init__()
+        # features
+        # hxw, c
+        # 20, 64
+        conv0 = B.conv_block(in_nc, base_nf, kernel_size=3, norm_type=None, act_type=act_type, \
+                             mode=mode)
+        conv1 = B.conv_block(base_nf, base_nf, kernel_size=4, stride=1, norm_type=norm_type, \
+                             act_type=act_type, mode=mode)
+        # 20, 64
+        conv2 = B.conv_block(base_nf, base_nf * 2, kernel_size=3, stride=1, norm_type=norm_type, \
+                             act_type=act_type, mode=mode)
+        conv3 = B.conv_block(base_nf * 2, base_nf * 2, kernel_size=4, stride=2, norm_type=norm_type, \
+                             act_type=act_type, mode=mode)
+        # 10, 128
+        conv4 = B.conv_block(base_nf * 2, base_nf * 4, kernel_size=3, stride=1, norm_type=norm_type, \
+                             act_type=act_type, mode=mode)
+        conv5 = B.conv_block(base_nf * 4, base_nf * 4, kernel_size=4, stride=2, norm_type=norm_type, \
+                             act_type=act_type, mode=mode)
+        # 5, 256
 
-            self.features = B.sequential(conv0, conv1, conv2, conv3, conv4, conv5)
+        self.features = B.sequential(conv0, conv1, conv2, conv3, conv4, conv5)
 
-            # classifier
-            self.classifier = nn.Sequential(
-                nn.Linear(512 * 5 * 5 * 5, 100), nn.LeakyReLU(0.2, True), nn.Linear(100, 1))
+        # classifier
+        self.classifier = nn.Sequential(
+            nn.Linear(512 * 5 * 5 * 5, 100), nn.LeakyReLU(0.2, True), nn.Linear(100, 1))
 
-        def forward(self, x):
-            x = self.features(x)
-            x = x.view(x.size(0), -1)
-            x = self.classifier(x)
-            return x
-
+    def forward(self, x):
+        x = self.features(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+        return x
 
 # VGG style Discriminator with input size 128*128
+# TODO: Change to 3d
 class Discriminator_VGG_128(nn.Module):
     def __init__(self, in_nc, base_nf, norm_type='batch', act_type='leakyrelu', mode='CNA'):
         super(Discriminator_VGG_128, self).__init__()
@@ -290,8 +275,8 @@ class Discriminator_VGG_128(nn.Module):
         x = self.classifier(x)
         return x
 
-
 # VGG style Discriminator with input size 128*128, Spectral Normalization
+# TODO: Change to 3d
 class Discriminator_VGG_128_SN(nn.Module):
     def __init__(self):
         super(Discriminator_VGG_128_SN, self).__init__()
@@ -336,7 +321,7 @@ class Discriminator_VGG_128_SN(nn.Module):
         x = self.linear1(x)
         return x
 
-
+# TODO: Change to 3d
 class Discriminator_VGG_96(nn.Module):
     def __init__(self, in_nc, base_nf, norm_type='batch', act_type='leakyrelu', mode='CNA'):
         super(Discriminator_VGG_96, self).__init__()
@@ -381,7 +366,7 @@ class Discriminator_VGG_96(nn.Module):
         x = self.classifier(x)
         return x
 
-
+# TODO: Change to 3d
 class Discriminator_VGG_192(nn.Module):
     def __init__(self, in_nc, base_nf, norm_type='batch', act_type='leakyrelu', mode='CNA'):
         super(Discriminator_VGG_192, self).__init__()
@@ -493,64 +478,3 @@ class ResNet101FeatureExtractor(nn.Module):
         output = self.features(x)
         return output
 
-
-class MINCNet(nn.Module):
-    def __init__(self):
-        super(MINCNet, self).__init__()
-        self.ReLU = nn.ReLU(True)
-        self.conv11 = nn.Conv2d(3, 64, 3, 1, 1)
-        self.conv12 = nn.Conv2d(64, 64, 3, 1, 1)
-        self.maxpool1 = nn.MaxPool2d(2, stride=2, padding=0, ceil_mode=True)
-        self.conv21 = nn.Conv2d(64, 128, 3, 1, 1)
-        self.conv22 = nn.Conv2d(128, 128, 3, 1, 1)
-        self.maxpool2 = nn.MaxPool2d(2, stride=2, padding=0, ceil_mode=True)
-        self.conv31 = nn.Conv2d(128, 256, 3, 1, 1)
-        self.conv32 = nn.Conv2d(256, 256, 3, 1, 1)
-        self.conv33 = nn.Conv2d(256, 256, 3, 1, 1)
-        self.maxpool3 = nn.MaxPool2d(2, stride=2, padding=0, ceil_mode=True)
-        self.conv41 = nn.Conv2d(256, 512, 3, 1, 1)
-        self.conv42 = nn.Conv2d(512, 512, 3, 1, 1)
-        self.conv43 = nn.Conv2d(512, 512, 3, 1, 1)
-        self.maxpool4 = nn.MaxPool2d(2, stride=2, padding=0, ceil_mode=True)
-        self.conv51 = nn.Conv2d(512, 512, 3, 1, 1)
-        self.conv52 = nn.Conv2d(512, 512, 3, 1, 1)
-        self.conv53 = nn.Conv2d(512, 512, 3, 1, 1)
-
-    def forward(self, x):
-        out = self.ReLU(self.conv11(x))
-        out = self.ReLU(self.conv12(out))
-        out = self.maxpool1(out)
-        out = self.ReLU(self.conv21(out))
-        out = self.ReLU(self.conv22(out))
-        out = self.maxpool2(out)
-        out = self.ReLU(self.conv31(out))
-        out = self.ReLU(self.conv32(out))
-        out = self.ReLU(self.conv33(out))
-        out = self.maxpool3(out)
-        out = self.ReLU(self.conv41(out))
-        out = self.ReLU(self.conv42(out))
-        out = self.ReLU(self.conv43(out))
-        out = self.maxpool4(out)
-        out = self.ReLU(self.conv51(out))
-        out = self.ReLU(self.conv52(out))
-        out = self.conv53(out)
-        return out
-
-
-# Assume input range is [0, 1]
-class MINCFeatureExtractor(nn.Module):
-    def __init__(self, feature_layer=34, use_bn=False, use_input_norm=True, \
-                device=torch.device('cpu')):
-        super(MINCFeatureExtractor, self).__init__()
-
-        self.features = MINCNet()
-        self.features.load_state_dict(
-            torch.load('../experiments/pretrained_models/VGG16minc_53.pth'), strict=True)
-        self.features.eval()
-        # No need to BP to variable
-        for k, v in self.features.named_parameters():
-            v.requires_grad = False
-
-    def forward(self, x):
-        output = self.features(x)
-        return output

@@ -8,10 +8,10 @@ from collections import OrderedDict
 
 import options.options as option
 import utils.util as util
-from data.util import bgr2ycbcr
 from data import create_dataset, create_dataloader
 from models import create_model
 from engfmt import Quantity
+from timeit import default_timer as timer
 
 try:
     from tensorboardX import SummaryWriter
@@ -19,12 +19,12 @@ try:
 except Exception:
     is_tensorboard_available = False
 
-from timeit import default_timer as timer
+
 def main():
     # options
     parser = argparse.ArgumentParser()
     # TODO Remove
-    opt_p = 'E:\\repos\\3dSMRnet\\experiments\\007_Test_SR-RRDB-3d_scale4.json'    # JUST FOR TESTIN!!!!!!!
+    opt_p = 'E:\\repos\\3dSMRnet\\experiments\\001_Test_SR-RRDB-3d_scale4.json'    # JUST FOR TESTIN!!!!!!!
     parser.add_argument('-opt', default=opt_p, type=str, required=False, help='Path to option JSON file.')
 
     opt = option.parse(parser.parse_args().opt, is_train=False, is_tensorboard_available=is_tensorboard_available)
@@ -58,11 +58,19 @@ def main():
 
         test_results = OrderedDict()
 
-        test_result_dataset = util.HDF5Store(os.path.join(dataset_dir, test_set_name + '_CNNPredict.h5'), (40,40,40,3))
+        data_size = test_loader.dataset.opt['LRSize'] * opt['model_config']['scale']
+        data_format = test_loader.dataset.opt['data_format']
+        if data_format == 'RGB':
+            data_size = (data_size, data_size, data_size, 3)
+        elif data_format == 'Complex':
+            data_size = (data_size, data_size, data_size, 2)
+        else:
+            raise NotImplementedError('DataFormat [{:s}] not recognized.'.format(data_format))
+
+        test_result_dataset = util.HDF5Store(os.path.join(dataset_dir, test_set_name + '_CNNPredict.h5'), data_size)
         test_results['time'] = 0
-        test_results['ssim'] = []
-        test_results['psnr_y'] = []
-        test_results['ssim_y'] = []
+        test_results['total_time'] = 0
+
         need_HR = False
         num_images = 0
         for idx, data in enumerate(test_loader):
@@ -80,15 +88,15 @@ def main():
 
             for k in visuals.keys():
                 if 'SR' in k:
-                    sr_imgs[k] = (util.tensor2img(visuals[k], min_max=None, out_type=np.float32, as_grid=False))# float32
+                    sr_imgs[k] = (util.tensor2img(visuals[k], min_max=None, out_type=np.float32, as_grid=False, data_format=data_format))# float32
                     if sr_imgs[k].ndim == 4:
                         sr_imgs[k] = sr_imgs[k][np.newaxis, :, :, :, :]
                 if 'LR' in k:
-                    lr_imgs[k] = (util.tensor2img(visuals[k], min_max=None, out_type=np.float32, as_grid=False))# float32
+                    lr_imgs[k] = (util.tensor2img(visuals[k], min_max=None, out_type=np.float32, as_grid=False, data_format=data_format))# float32
                     if lr_imgs[k].ndim == 4:
                         lr_imgs[k] = lr_imgs[k][np.newaxis, :, :, :, :]
             if need_HR:
-                gt_img = util.tensor2img(visuals['HR'], min_max=None, out_type=np.float32, as_grid=False)  # float32
+                gt_img = util.tensor2img(visuals['HR'], min_max=None, out_type=np.float32, as_grid=False, data_format=data_format)  # float32
                 if gt_img.ndim == 4:
                     gt_img = gt_img[np.newaxis, :, :, :, :]
             else:
@@ -110,9 +118,8 @@ def main():
                                               slice=test_loader.dataset.opt['LRSize'] // 2,
                                               scale=opt['model_config']['scale'], is_train=False, index=img_num)
 
-            # calculate PSNR and SSIM
+            # calculate MSE/RMSE
             if need_HR:
-                # calculate PSNR
                 log_str = ""
                 for sr_k in sr_imgs.keys():
                     if 'x' in sr_k:  # find correct key
@@ -123,33 +130,32 @@ def main():
                     else:
                         tmp_hr = gt_img
                     for sr_vol, lr_vol in zip(sr_imgs[sr_k], tmp_hr):
-                        mse, rmse, psnr = util.calculate_mse_rmse_psnr(sr_vol, lr_vol)
+                        mse = np.square(sr_vol - lr_vol).mean()
+                        rmse = np.sqrt(mse)
+
                         if sr_k in test_results:
                             test_results[sr_k]['mse'].append(mse)
                             test_results[sr_k]['rmse'].append(rmse)
-                            test_results[sr_k]['psnr'].append(psnr)
                         else:
                             test_results[sr_k] = OrderedDict([])
                             test_results[sr_k]['mse'] = [mse]
                             test_results[sr_k]['rmse'] = [rmse]
-                            test_results[sr_k]['psnr'] = [psnr]
-                    log_str += "\n\t\t{}  MSE: {:.6f}; RMSE: {:.6f}; PSNR: {:.6f} dB".format(
-                        sr_k, np.mean(test_results[sr_k]['mse']), np.mean(test_results[sr_k]['rmse']), np.mean(test_results[sr_k]['psnr']))
+                    log_str += "\n\t\t{}  MSE: {:.6f}; RMSE: {:.6f}".format(
+                        sr_k, np.mean(test_results[sr_k]['mse']), np.mean(test_results[sr_k]['rmse']))
 
-            # else:
-            #     logger.info(img_name)
             logger.info("System matrix {}/{}: {}".format(num_images, total_images, log_str))
+            end = timer()
+            test_results['total_time'] += (end - start)
 
-        logger.info("Processing time: ", test_results['time'])
+        logger.info("Raw processing time: {} s".format(test_results['time']))
+        logger.info("Total time : {} s".format(test_results['total_time']))
         if need_HR:  # metrics
             for tr_k in test_results.keys():
-                # Average PSNR/SSIM results
-                ave_mse = sum(test_results[tr_k]['mse']) / len(test_results[tr_k]['mse'])
-                ave_rmse = sum(test_results[tr_k]['rmse']) / len(test_results[tr_k]['rmse'])
-                ave_psnr = sum(test_results[tr_k]['psnr']) / len(test_results[tr_k]['psnr'])
-                logger.info('----Average PSNR/SSIM results for {} {}----\n\tMSE: {:.6f}; RMSE: {:.6f}; PSNR: {:.6f} dB.\n'\
-                        .format(test_set_name, tr_k, ave_mse, ave_rmse, ave_psnr))
-
+                if 'time' not in tr_k:
+                    # Average results
+                    ave_mse = sum(test_results[tr_k]['mse']) / len(test_results[tr_k]['mse'])
+                    ave_rmse = sum(test_results[tr_k]['rmse']) / len(test_results[tr_k]['rmse'])
+                    logger.info('----Average MSE/RMSE results for {} {}----\n\tMSE: {:.6f}; RMSE: {:.6f}.\n'.format(test_set_name, tr_k, ave_mse, ave_rmse))
 
 if __name__ == "__main__":
     main()

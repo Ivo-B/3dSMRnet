@@ -32,7 +32,7 @@ def main():
     # parse command line arguments
     parser = argparse.ArgumentParser(description="PyTorch LapSRN")
 
-    opt_p = 'E:\\repos\\3dSMRnet\\experiments/0014_Train_SR-RRDB-3d_SynomagD_scale4.json'
+    opt_p = 'E:\\repos\\3dSMRnet\\experiments/001_Train_SR-RRDB-3d_SynomagD_scale4.json'
     parser.add_argument('-opt', default=opt_p, type=str, required=False, help='Path to option JSON file.')
 
     config = option.parse(parser.parse_args().opt, True, is_tensorboard_available)
@@ -108,7 +108,7 @@ def main():
     model = create_model(config)
 
     if is_tensorboard_available and 'debug' not in run_config['id']:
-        # TODO:fixe problem
+        # TODO: fix problem
         # Save graph to tensorboard
         # dummy_input = Variable(torch.rand((10,) + config['model_config']['input_shape']))
         # tb_logger.add_graph(model.netG, (dummy_input,))
