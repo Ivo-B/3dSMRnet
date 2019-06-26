@@ -144,7 +144,7 @@ def complex_array_to_rgb(X, theme='dark', rmax=None):
     return Y, absmax
 
 
-def showAndSaveSlice(sr_bVols, lr_bVols, gt_bVol, save_img_path, slice=20, index=0, scale=4, is_train=True, data_format='RGB'):
+def showAndSaveSlice(sr_bVols, lr_bVols, gt_bVol, save_img_path, slice=20, index=0, scale=4, is_train=True, data_format='RGB', data_mean=None, data_std=None):
     def norm_color(slice, vmin, vmax):
         slice = (slice - vmin) / (vmax - vmin)
         slice[slice < 0.0] = 0.
@@ -173,6 +173,24 @@ def showAndSaveSlice(sr_bVols, lr_bVols, gt_bVol, save_img_path, slice=20, index
 
         lr_slices[k] = lr_bVols[k][index, :, :, slice_tmp, :]
         if i == 0:
+            # invert input norm
+            if data_std:
+                if type(data_std) is list:
+                    # channel std
+                    for i, cStd in enumerate(data_std):
+                        lr_slices[k][:, :, i] = lr_slices[k][:, :, i] * cStd
+                else:
+                    lr_slices[k] = lr_slices[k] * data_std
+
+            if data_mean:
+                if type(data_mean) is list:
+                    # channel mean
+                    for i, cMean in enumerate(data_mean):
+                        lr_slices[k][:, :, i] = lr_slices[k][:, :, i] + cMean
+                else:
+                    lr_slices[k] = lr_slices[k] + data_mean
+
+
             if data_format == 'RGB':
                 lr_slices[k] += 236.17393  # invert input norm
                 if normVal is None:

@@ -1,7 +1,3 @@
-import os.path
-import random
-import numpy as np
-import cv2
 import torch
 import torch.utils.data as data
 import data.util as util
@@ -9,6 +5,7 @@ from collections import OrderedDict
 import h5py
 import numpy as np
 import logging
+
 
 class LRHRDataset(data.Dataset):
     '''
@@ -37,8 +34,8 @@ class LRHRDataset(data.Dataset):
                 self.LR_hdf5[key] = np.array(value)
         assert len(self.LR_hdf5) > 0, 'Error: LR is empty.'
 
+        self.LR_hdf5['data'] = np.array(self.LR_hdf5['data'])
         if opt['data_format'] == 'RGB':
-            self.LR_hdf5['data'] = np.array(self.LR_hdf5['data']) - 236.17393  # input norm
             if self.LR_hdf5['data'].shape[1] == 3:
                 # convert data to BGR
                 self.LR_hdf5['data'] = self.LR_hdf5['data'][:, [2, 1, 0], :, :, :]
@@ -49,11 +46,24 @@ class LRHRDataset(data.Dataset):
         elif opt['data_format'] == 'Complex':
             assert self.LR_hdf5['data'].shape[4] == 2, 'DataFormat [{}] does not match channel dim [{}]'.format(
                 opt['data_format'], self.LR_hdf5['data'].shape[4])
-            self.LR_hdf5['data'] = np.array(self.LR_hdf5['data'])
-            self.LR_hdf5['data'][:, :, :, :, 0] = (self.LR_hdf5['data'][:, :, :, :, 0] + 73.54369) / 3396.1528  # -73.54369 input norm
-            self.LR_hdf5['data'][:, :, :, :, 1] = (self.LR_hdf5['data'][:, :, :, :, 1] + 6.0050526) / 3714.9639 # -6.0050526 input norm
         else:
             raise NotImplementedError('DataFormat [{:s}] not recognized.'.format(opt['data_format']))
+
+        # input norm
+        if opt['data_mean']:
+            if type(opt['data_mean']) is list:
+                # channel mean
+                for i, cMean in enumerate(opt['data_mean']):
+                    self.LR_hdf5['data'][:, :, :, :, i] = self.LR_hdf5['data'][:, :, :, :, i] - cMean
+            else:
+                self.LR_hdf5['data'] = self.LR_hdf5['data'] - opt['data_mean']
+        if opt['data_std']:
+            if type(opt['data_std']) is list:
+                # channel std
+                for i, cStd in enumerate(opt['data_std']):
+                    self.LR_hdf5['data'][:, :, :, :, i] = self.LR_hdf5['data'][:, :, :, :, i] / cStd
+            else:
+                self.LR_hdf5['data'] = self.LR_hdf5['data'] / opt['data_std']
 
         if self.HR_hdf5 is not None:
             if self.HR_hdf5['data'].shape[1] == 3:

@@ -14,15 +14,14 @@ import torch
 import torch.utils.data
 import torch.backends.cudnn
 
-
 from data import create_dataloader, create_dataset
 import options.options as option
 from utils import util
 from models import create_model
 
-
 try:
     from tensorboardX import SummaryWriter
+
     is_tensorboard_available = True
 except Exception:
     is_tensorboard_available = False
@@ -32,7 +31,7 @@ def main():
     # parse command line arguments
     parser = argparse.ArgumentParser(description="PyTorch LapSRN")
 
-    opt_p = 'E:\\repos\\3dSMRnet\\experiments/001_Train_SR-RRDB-3d_SynomagD_scale4.json'
+    opt_p = 'experiments/001_Train_SR-RRDB-3d_SynomagD_scale4.json'
     parser.add_argument('-opt', default=opt_p, type=str, required=False, help='Path to option JSON file.')
 
     config = option.parse(parser.parse_args().opt, True, is_tensorboard_available)
@@ -91,6 +90,8 @@ def main():
                 len(train_set), train_size))
             total_iters = int(optim_config['niter'])
             total_epochs = int(math.ceil(total_iters / train_size))
+            if 'debug' in run_config['id']:
+                total_epochs = 10
             logger.info('Total epochs needed: {:d} for iters {:,d}'.format(
                 total_epochs, total_iters))
             train_loader = create_dataloader(train_set, dataset_opt)
@@ -172,22 +173,22 @@ def main():
                     for k in visuals.keys():
                         if 'SR' in k:
                             sr_imgs[k] = (util.tensor2img(visuals[k], min_max=None, out_type=np.float32,
-                                                          as_grid=False, data_format='Complex'))  # float32
+                                                          as_grid=False, data_format=data_config['val']['data_format']))  # float32
                             if sr_imgs[k].ndim == 4:
                                 sr_imgs[k] = sr_imgs[k][np.newaxis, :, :, :, :]
                         if 'LR' in k:
                             lr_imgs[k] = (util.tensor2img(visuals[k], min_max=None, out_type=np.float32,
-                                                          as_grid=False, data_format='Complex'))  # float32
+                                                          as_grid=False, data_format=data_config['val']['data_format']))  # float32
                             if lr_imgs[k].ndim == 4:
                                 lr_imgs[k] = lr_imgs[k][np.newaxis, :, :, :, :]
                     gt_img = util.tensor2img(visuals['HR'], min_max=None, out_type=np.float32,
-                                             as_grid=False, data_format='Complex')
+                                             as_grid=False, data_format=data_config['val']['data_format'])
                     if gt_img.ndim == 4:
                         gt_img = gt_img[np.newaxis, :, :, :, :]
 
                     # calculate PSNR
                     for sr_k in sr_imgs.keys():
-                        if 'x' in sr_k: # find correct key
+                        if 'x' in sr_k:  # find correct key
                             for lr_k in lr_imgs.keys():
                                 if sr_k.replace('SR', '') in lr_k:
                                     tmp_hr = lr_imgs[lr_k]
@@ -215,7 +216,10 @@ def main():
 
                             save_img_path = os.path.join(img_dir, img_name)
                             util.showAndSaveSlice(sr_imgs, lr_imgs, gt_img, save_img_path,
-                                                  scale=config['model_config']['scale'], index=img_num, data_format='Complex')
+                                                  scale=config['model_config']['scale'], index=img_num,
+                                                  data_format=data_config['val']['data_format'],
+                                                  data_mean=data_config['val']['data_mean'],
+                                                  data_std=data_config['val']['data_std'])
                         total_images += 1
                 log_str = '# Validation #'
                 log_str2 = '<epoch:{:3d}, iter:{:8,d}>'.format(epoch, current_step)
@@ -228,7 +232,7 @@ def main():
                             if avg_metric[k][metric_k] < best_psnr[k]:
                                 is_newBest = True
                                 best_psnr[k] = avg_metric[k][metric_k]
-                                log_str +='\tBEST'
+                                log_str += '\tBEST'
                         log_str += ' {}-{}: {:.4e} * {}'.format(k, metric_k, avg_metric[k][metric_k], idx)
                         log_str2 += ' {}-{}: {:.4e} * {}'.format(k, metric_k, avg_metric[k][metric_k], idx)
 

@@ -24,7 +24,7 @@ def main():
     # options
     parser = argparse.ArgumentParser()
     # TODO Remove
-    opt_p = 'E:\\repos\\3dSMRnet\\experiments\\001_Test_SR-RRDB-3d_scale4.json'    # JUST FOR TESTIN!!!!!!!
+    opt_p = 'experiments\\001_Test_SR-RRDB-3d_scale4.json'    # JUST FOR TESTIN!!!!!!!
     parser.add_argument('-opt', default=opt_p, type=str, required=False, help='Path to option JSON file.')
 
     opt = option.parse(parser.parse_args().opt, is_train=False, is_tensorboard_available=is_tensorboard_available)
