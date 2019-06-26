@@ -190,14 +190,10 @@ def showAndSaveSlice(sr_bVols, lr_bVols, gt_bVol, save_img_path, slice=20, index
                 else:
                     lr_slices[k] = lr_slices[k] + data_mean
 
-
             if data_format == 'RGB':
-                lr_slices[k] += 236.17393  # invert input norm
                 if normVal is None:
                     normVal = [lr_slices[k].min(), lr_slices[k].max()]
             elif data_format == 'Complex':
-                lr_slices[k][:, :, 0] = (lr_slices[k][:, :, 0] * 3396.1528) - 73.54369  # invert input norm
-                lr_slices[k][:, :, 1] = (lr_slices[k][:, :, 1] * 3714.9639) - 6.0050526  # invert input norm
                 # convert imag real to complex
                 if normVal is None:
                     _, normVal = complex_array_to_rgb(lr_slices[k][..., 1] + 1j * lr_slices[k][..., 0])
