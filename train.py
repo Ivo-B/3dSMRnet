@@ -65,7 +65,9 @@ def main():
 
     # tensorboard logger
     if run_config['use_tb_logger'] and 'debug' not in run_config['id']:
-        tb_logger = SummaryWriter(log_dir='../tb_logger/' + run_config['id'])
+        util.mkdir_and_rename(
+            os.path.join(run_config['path']['root'], 'tb_logger', run_config['id']))  # rename old folder if exists
+        tb_logger = SummaryWriter(log_dir=os.path.join(run_config['path']['root'], 'tb_logger', run_config['id']))
 
     # set random seed
     logger.info("===> Set seed")
