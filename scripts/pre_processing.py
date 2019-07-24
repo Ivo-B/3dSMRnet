@@ -2,6 +2,42 @@ import numpy as np
 import h5py
 import os
 
+
+def poissondisc_sampling(dataset, boxSize, gridSize, points=None):
+    if points is None:
+        #input dim: F CHWD
+        # poisson disk sampling
+        # user defined options
+        disk = False  # this parameter defines if we look for Poisson-like distribution on a disk/sphere (center at 0, radius 1) or in a square/box (0-1 on x and y)
+        repeatPattern = False  # this parameter defines if we look for "repeating" pattern so if we should maximize distances also with pattern repetitions
+        num_points = gridSize * gridSize * gridSize  # number of points we are looking for
+        num_iterations = 10  # number of iterations in which we take average minimum squared distances between points and try to maximize them
+        first_point_zero = False  # should be first point zero (useful if we already have such sample) or random
+        iterations_per_point = 300  # iterations per point trying to look for a new point with larger distance
+        sorting_buckets = 0  # if this option is > 0, then sequence will be optimized for tiled cache locality in n x n tiles (x followed by y)
+        num_dim = 3  # 1, 2, 3 dimensional version
+        num_rotations = 0  # number of rotations of pattern to check against
+
+        points = None
+        while points is None:
+            poisson_generator = PoissonGenerator(num_dim, disk, repeatPattern, first_point_zero, boxSize=boxSize, gridSize=gridSize)
+            points = poisson_generator.find_point_set(num_points, num_iterations, iterations_per_point, num_rotations)
+        points = poisson_generator.cache_sort(points, sorting_buckets)
+        # new_x = int(np.ceil(new_point[0] / self.cellSize) - 1)
+        # new_y = int(np.ceil(new_point[1] / self.cellSize) - 1)
+        np.savetxt('poissonDiskSampling.txt', points, fmt='%d', delimiter=',')
+
+    subsampled_vol = np.zeros((dataset.shape[0], dataset.shape[1], gridSize, gridSize, gridSize))
+    for point in points:
+        x, y, z = list(point)
+        new_x = int(x / (boxSize / gridSize))
+        new_y = int(y / (boxSize / gridSize))
+        new_z = int(z / (boxSize / gridSize))
+        subsampled_vol[:, :, new_x, new_y, new_z] = dataset[:, :, int(x), int(y), int(z)]
+
+    return subsampled_vol
+
+
 def load_poissondisc_sampling(path):
     points = np.loadtxt(path, delimiter=',')
     return points
