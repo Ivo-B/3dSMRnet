@@ -15,11 +15,11 @@
     // seed to make experiment reproducible
     "manual_seed": "0xCAFFEE",
     "path": {
-      "root": "E:\\Projects/MPISystemMatrixRec",
+      "root": "/home/daisy3/Projects/MPISystemMatrixRec/",
       // , "resume_state": "../experiments/debug_001_RRDB_PSNR_x4_DIV2K/training_state/200.state",
-      "pretrain_model_G": "E:\\Projects\\MPISystemMatrixRec\\experiments\\sr_RRDB_RGB_PSNR_x4_SynomagPEG_014\\models\\14000_G.pth"
+      "pretrain_model_G": "/home/daisy3/Projects/MPISystemMatrixRec/experiments/sr_RRDB_PSNR_x4_Complex_001_archived_190710-105619/models/195000_G.pth"
     },
-    "visual_examples": false
+    "visual_examples": true
   },
 
   "model_config": {
@@ -45,10 +45,12 @@
       "mode": "LRHR",
       "LRSize": 10,
       "data_format": "Complex",
-      "dataroot_HR": "E:\\datasets\\MPISystemMatrix\\pre_processed_test\\PerimagGT_SNR3_RGB_HR_3175x40x40x40x2_ImagReal.h5",
-      "dataroot_LR": "E:\\datasets\\MPISystemMatrix\\pre_processed_test\\PerimagTest_SNR3_RGB_Equi4x_3175x10x10x10x2_ImagReal.h5",
+      "dataroot_HR": "/media/daisy3/Data/data_set/MPISystemMatrix/pre_processing_test/PerimagGT_SNR3_RGB_HR_3175x40x40x40x2_ImagReal.h5",
+      "dataroot_LR": "/media/daisy3/Data/data_set/MPISystemMatrix/pre_processing_test/PerimagTest_SNR3_RGB_Equi4x_3175x10x10x10x2_ImagReal.h5",
       "batch_size": 128, // total batch size; batch size per GPU = batch_size/NUM_GPUS
       "n_workers": 0 // number of workers to load/process data; 0 for windows
+      ,"data_mean": [-73.54369, -6.0050526]
+      ,"data_std": [3396.1528, 3714.9639]
     }
   }
 }

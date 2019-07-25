@@ -13,7 +13,7 @@
     // seed to make experiment reproducible
     "manual_seed": "0xCAFFEE",
     "path": {
-      "root": "E:\\Projects/MPISystemMatrixRec",
+      "root": "/home/daisy3/Projects/MPISystemMatrixRec",
       // , "resume_state": "../experiments/debug_001_RRDB_PSNR_x4_DIV2K/training_state/200.state",
       // path to pretrained model
       "pretrain_model_G": null
@@ -45,10 +45,11 @@
   // Dataset parameters
   "data_config": {
     "train": {
+      
       "name": "SynomagPEG",
       "mode": "LRHR", //
-      "dataroot_HR": "E:\\datasets\\MPISystemMatrix\\pre_processed\\SynomagPEG_GT_SNR3_HR_3536x40x40x40x2_ImagReal.h5",
-      "dataroot_LR": "E:\\datasets\\MPISystemMatrix\\pre_processed\\SynomagPEG_Train_SNR3_Equi4x_3536x10x10x10x2_ImagReal.h5",
+      "dataroot_HR": "/media/daisy3/Data/data_set/MPISystemMatrix/pre_processed/SynomagPEG_GT_SNR3_HR_3536x40x40x40x2_ImagReal.h5",
+      "dataroot_LR": "/media/daisy3/Data/data_set/MPISystemMatrix/pre_processed/SynomagPEG_Train_SNR3_Equi4x_3536x10x10x10x2_ImagReal.h5",
       "data_format": "Complex", // [Complex, RGB]
       "use_shuffle": true, // shuffle data after each epoch
       "n_workers": 0, // number of workers to load/process data
@@ -63,8 +64,8 @@
     "val": {
       "name": "val_SynomagPEG",
       "mode": "LRHR",
-      "dataroot_HR": "E:\\datasets\\MPISystemMatrix\\pre_processed\\SynomagPEG_GT_SNR3_HR_393x40x40x40x2_ImagReal.h5",
-      "dataroot_LR": "E:\\datasets\\MPISystemMatrix\\pre_processed\\SynomagPEG_Val_SNR3_Equi4x_393x10x10x10x2_ImagReal.h5",
+      "dataroot_HR": "/media/daisy3/Data/data_set/MPISystemMatrix/pre_processed/SynomagPEG_GT_SNR3_HR_393x40x40x40x2_ImagReal.h5",
+      "dataroot_LR": "/media/daisy3/Data/data_set/MPISystemMatrix/pre_processed/SynomagPEG_Val_SNR3_Equi4x_393x10x10x10x2_ImagReal.h5",
       "data_format": "Complex",
       "batch_size": 1, // total batch size; batch size per GPU = batch_size/NUM_GPUS
       "n_workers": 0 // number of workers to load/process data; 0 for windows
@@ -78,7 +79,7 @@
     "niter": 20e4,
     "optim": "Adam",
 
-    "lr_G": 1e-4,
+    "lr_G": 5e-5,
     //"weight_decay_G": 1e-4,
     "beta1_G": 0.9,
     "beta2_G": 0.999,

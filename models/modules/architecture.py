@@ -477,4 +477,3 @@ class ResNet101FeatureExtractor(nn.Module):
             x = (x - self.mean) / self.std
         output = self.features(x)
         return output
-

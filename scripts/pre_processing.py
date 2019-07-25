@@ -112,8 +112,8 @@ def main():
     file_names += ['Data37x37x37x3x3929SynomagPEG_SNR3.h5']
     file_name_outs = ["Perimag"]
     file_name_outs += ["SynomagPEG"]
-    data_format = 'RGB'  # ImagReal | RGB
-    data_root = 'E:\\datasets\\MPISystemMatrix'
+    data_format = 'ImagReal'  # ImagReal | RGB
+    data_root = '/media/daisy3/Data/data_set/MPISystemMatrix'
     zeroPad_to = (40, 40, 40)
     equi_sampling = [2, 4]
 

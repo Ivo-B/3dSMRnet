@@ -24,7 +24,7 @@ def main():
     # options
     parser = argparse.ArgumentParser()
     # TODO Remove
-    opt_p = 'experiments\\001_Test_SR-RRDB-3d_scale4.json'    # JUST FOR TESTIN!!!!!!!
+    opt_p = '/home/daisy3/repos/3dSMRnet/experiments/001_Test_SR-RRDB-3d_scale4.json'    # JUST FOR TESTIN!!!!!!!
     parser.add_argument('-opt', default=opt_p, type=str, required=False, help='Path to option JSON file.')
 
     opt = option.parse(parser.parse_args().opt, is_train=False, is_tensorboard_available=is_tensorboard_available)
@@ -116,7 +116,10 @@ def main():
                     if run_config['visual_examples']:
                         util.showAndSaveSlice(sr_imgs, lr_imgs, gt_img, save_img_path.replace('.nii.gz', '.png'),
                                               slice=test_loader.dataset.opt['LRSize'] // 2,
-                                              scale=opt['model_config']['scale'], is_train=False, index=img_num)
+                                              scale=opt['model_config']['scale'], is_train=False, index=img_num,
+                                              data_format=test_loader.dataset.opt['data_format'],
+                                              data_mean=test_loader.dataset.opt['data_mean'],
+                                              data_std=test_loader.dataset.opt['data_std'])
 
             # calculate MSE/RMSE
             if need_HR:

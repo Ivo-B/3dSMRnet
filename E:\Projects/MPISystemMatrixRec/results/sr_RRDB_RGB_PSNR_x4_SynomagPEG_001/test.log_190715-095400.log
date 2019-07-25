@@ -1,0 +1,46 @@
+19-07-15 09:54:00.241 - INFO:   run_config:[
+    num: 001
+    id: sr_RRDB_RGB_PSNR_x4_SynomagPEG_001
+    use_tb_logger: True
+    gpu_ids: [0, 1]
+    manual_seed: 0xCAFFEE
+    path:[
+      root: E:\Projects/MPISystemMatrixRec
+      pretrain_model_G: /home/daisy3/Projects/MPISystemMatrixRec/experiments/sr_RRDB_PSNR_x4_Complex_001_archived_190710-105619/models/195000_G.pth
+      results_root: E:\Projects/MPISystemMatrixRec/results/sr_RRDB_RGB_PSNR_x4_SynomagPEG_001
+      log: E:\Projects/MPISystemMatrixRec/results/sr_RRDB_RGB_PSNR_x4_SynomagPEG_001
+    ]
+    visual_examples: False
+    is_train: False
+  ]
+  model_config:[
+    network_G:[
+      which_model_G: RRDB_net
+      norm_type: None
+      mode: CNA
+      nf: 64
+      nb: 9
+      in_nc: 2
+      out_nc: 2
+      gc: 32
+      group: 1
+    ]
+    model: sr
+    scale: 4
+  ]
+  data_config:[
+    test_1:[
+      name: test_PerimagEqui
+      mode: LRHR
+      LRSize: 10
+      data_format: Complex
+      dataroot_HR: /media/datasets/MPISystemMatrix/pre_processed_test/PerimagGT_SNR3_RGB_HR_3175x40x40x40x2_ImagReal.h5
+      dataroot_LR: /media/datasets/MPISystemMatrix/pre_processed_test/PerimagTest_SNR3_RGB_Equi4x_3175x10x10x10x2_ImagReal.h5
+      batch_size: 128
+      n_workers: 0
+      phase: test
+      scale: 4
+      data_type: hdf5
+    ]
+  ]
+

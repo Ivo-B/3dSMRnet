@@ -132,6 +132,7 @@ def complex_array_to_rgb(X, theme='dark', rmax=None):
     Especially for use with imshow for complex plots.'''
 
     absmax = rmax or np.abs(X).max()
+    tmp = np.abs(X).max()
     Y = np.zeros(X.shape + (3,), dtype='float')
     Y[..., 0] = np.angle(X) / (2 * np.pi) % 1
     if theme == 'light':
@@ -153,13 +154,17 @@ def showAndSaveSlice(sr_bVols, lr_bVols, gt_bVol, save_img_path, slice=20, index
 
     normVal = None
     if gt_bVol is not None:
+        if is_train:
+            slice_tmp = slice
+        else:
+            slice_tmp = (slice * scale)
         if data_format == 'RGB':
-            gt_slice = gt_bVol[index, :, :, slice, :][:, :, [2, 1, 0]]  # BGR->RGB
+            gt_slice = gt_bVol[index, :, :, slice_tmp, :][:, :, [2, 1, 0]]  # BGR->RGB
             normVal = [gt_slice.min(), gt_slice.max()]
             gt_slice = norm_color(gt_slice, normVal[0], normVal[1])  # color sync
         else:
             # convert imag real to complex
-            gt_slice = gt_bVol[index, :, :, slice, :]
+            gt_slice = gt_bVol[index, :, :, slice_tmp, :]
             gt_slice = gt_slice[..., 1] + 1j * gt_slice[..., 0]
             gt_slice, normVal = complex_array_to_rgb(gt_slice)
 

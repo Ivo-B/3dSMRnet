@@ -21,8 +21,8 @@ from models import create_model
 
 try:
     from tensorboardX import SummaryWriter
-
     is_tensorboard_available = True
+    print("TensorBoardX summary writer Available")
 except Exception:
     is_tensorboard_available = False
 
@@ -42,7 +42,7 @@ def main():
     data_config = config['data_config']
 
     # train from scratch OR resume training
-    if run_config['path']['resume_state']:  # resuming training
+    if run_config['path']['+']:  # resuming training
         resume_state = torch.load(run_config['path']['resume_state'])
     else:  # training from scratch
         resume_state = None
