@@ -112,7 +112,7 @@ def main():
     file_names += ['Data37x37x37x3x3929SynomagPEG_SNR3.h5']
     file_name_outs = ["Perimag"]
     file_name_outs += ["SynomagPEG"]
-    data_format = 'ImagReal'  # ImagReal | RGB
+    data_format = 'RGB'  # ImagReal | RGB
     data_root = '/media/daisy3/Data/data_set/MPISystemMatrix'
     zeroPad_to = (40, 40, 40)
     equi_sampling = [2, 4]
@@ -148,7 +148,6 @@ def main():
                 shape_str = str(out_freq.shape).replace(", ", "x").replace("(", "").replace(")", "")
                 file_path = file_path_out + '//{0}_{1}_SNR3_Equi{2}x_{3}_{4}.h5'.format(file_name_out, phase, equi, shape_str, data_format)
                 save_dataset(out_freq, dset_hz[phase_indxs[i]], file_path)
-
 
 if __name__ == "__main__":
     main()

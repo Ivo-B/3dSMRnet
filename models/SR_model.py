@@ -83,6 +83,8 @@ class SRModel(BaseModel):
                 self.real_H = data['HR'].to(self.device)  # HR
         else:
             self.var_L = data['LR'].to(self.device)  # LR
+            logger.info('Number of val images in {}'.format(data['LR'].size()))
+
             if need_HR:
                 self.real_H = data['HR'].to(self.device)  # HR
         self.hz = data['hz']

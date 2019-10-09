@@ -33,8 +33,8 @@
       "mode": "CNA", // CNA: Conv -> Norm -> Act | NAC: Norm -> Act --> Conv | CNAC
       "nf": 64,
       "nb": 9,
-      "in_nc": 2,
-      "out_nc": 2,
+      "in_nc": 3,
+      "out_nc": 3,
       "gc": 32,
       "group": 1
     },
@@ -46,11 +46,11 @@
   "data_config": {
     "train": {
       
-      "name": "SynomagPEG",
-      "mode": "LRHR", //
-      "dataroot_HR": "/media/daisy3/Data/data_set/MPISystemMatrix/pre_processed/SynomagPEG_GT_SNR3_HR_3536x40x40x40x2_ImagReal.h5",
-      "dataroot_LR": "/media/daisy3/Data/data_set/MPISystemMatrix/pre_processed/SynomagPEG_Train_SNR3_Equi4x_3536x10x10x10x2_ImagReal.h5",
-      "data_format": "Complex", // [Complex, RGB]
+      "name": "Perimag",
+      "mode": "LRHR", ///media/daisy3/Data/data_set/MPISystemMatrix/pre_processed/Perimag_GT_SNR3_HR_318x40x40x40x3_RGB.h5
+      "dataroot_HR": "/media/daisy3/Data/data_set/MPISystemMatrix/pre_processed/Perimag_GT_SNR3_HR_2857x40x40x40x3_RGB.h5",
+      "dataroot_LR": "/media/daisy3/Data/data_set/MPISystemMatrix/pre_processed/Perimag_Train_SNR3_Equi4x_2857x10x10x10x3_RGB.h5",
+      "data_format": "RGB", // [Complex, RGB]
       "use_shuffle": true, // shuffle data after each epoch
       "n_workers": 0, // number of workers to load/process data
       "batch_size": 64, // total batch size; batch size per GPU = batch_size/NUM_GPUS
@@ -62,11 +62,11 @@
 
     },
     "val": {
-      "name": "val_SynomagPEG",
+      "name": "val_Perimag",
       "mode": "LRHR",
-      "dataroot_HR": "/media/daisy3/Data/data_set/MPISystemMatrix/pre_processed/SynomagPEG_GT_SNR3_HR_393x40x40x40x2_ImagReal.h5",
-      "dataroot_LR": "/media/daisy3/Data/data_set/MPISystemMatrix/pre_processed/SynomagPEG_Val_SNR3_Equi4x_393x10x10x10x2_ImagReal.h5",
-      "data_format": "Complex",
+      "dataroot_HR": "/media/daisy3/Data/data_set/MPISystemMatrix/pre_processed/Perimag_GT_SNR3_HR_318x40x40x40x3_RGB.h5",
+      "dataroot_LR": "/media/daisy3/Data/data_set/MPISystemMatrix/pre_processed/Perimag_Val_SNR3_Equi4x_318x10x10x10x3_RGB.h5",
+      "data_format": "RGB",
       "batch_size": 1, // total batch size; batch size per GPU = batch_size/NUM_GPUS
       "n_workers": 0 // number of workers to load/process data; 0 for windows
       ,"data_mean": [-73.54369, -6.0050526]

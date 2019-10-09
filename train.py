@@ -138,6 +138,7 @@ def main():
             model.update_learning_rate()
 
             # training
+
             model.feed_data(train_data)
             model.optimize_parameters(current_step)
 
