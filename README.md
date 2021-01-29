@@ -1,12 +1,14 @@
 # 3d-SMRnet:  MPI system matrix recovery
-This repository contains the official code and model weights for the following arXiv [paper](https://arxiv.org/abs/1905.03026) (Submitted to MICCAI 2019):
+This repository contains the official code and model weights for the following MICCAI 2020 [paper](https://arxiv.org/abs/1905.03026):
 
 ```
-@ARTICLE{Baltruschat3dSMRNet2019,
-    author="Baltruschat, Ivo Matteo and Szwargulski, Patryk and Griese, Florian and Grosser, Mirco and Werner, Ren{\'e} and Knopp, Tobias",
-    title="3d-SMRnet: Achieving a new quality of MPI system matrix recovery by deep learning",
-    journal="arXiv",
-    year="2019",
+@inproceedings{baltruschat20203d,
+  title={3d-SMRnet: Achieving a new quality of MPI system matrix recovery by deep learning},
+  author={Baltruschat, Ivo M and Szwargulski, Patryk and Griese, Florian and Grosser, Mirco and Werner, Rene and Knopp, Tobias},
+  booktitle={International Conference on Medical Image Computing and Computer-Assisted Intervention},
+  pages={74--82},
+  year={2020},
+  organization={Springer}
 }
 ```
 
