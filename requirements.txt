@@ -38,7 +38,7 @@ numpy == 1.14.5
 # data\LRx2x4HR_dataset.py: 4
 # data\util.py: 8
 # utils\util.py: 5
-opencv_python == 3.4.1.15
+opencv_python == 4.2.0.32
 
 # error.py: 1
 scikit_image == 0.14.0
