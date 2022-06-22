@@ -32,7 +32,7 @@ nibabel == 2.3.3
 # test.py: 6
 # train.py: 11
 # utils\util.py: 4
-numpy == 1.14.5
+numpy == 1.22.0
 
 # data\LRHR_dataset.py: 4
 # data\LRx2x4HR_dataset.py: 4
